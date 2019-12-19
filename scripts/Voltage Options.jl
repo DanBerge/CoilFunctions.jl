@@ -182,3 +182,45 @@ a = let
     tcollect(m,y)
 
 end
+
+plt=let
+    s=:SBE5
+    coil=CoilFunctions.coil[s]
+    p=CoilFunctions.power[s]
+    Ω=CoilFunctions.Ω(s,24u"V")
+    rng=15u"mm":0.01u"mm":30u"mm"
+    f = x -> begin
+        let coil=CoilGeometry(coil;len=x)
+            optimalcoil(coil,Ω,0.9).coil.od
+        end
+    end
+    y=map(x->f(x),rng)
+    plot(ustrip.(rng),ustrip.(y);legend=:none,
+        xlabel="Length (mm)",ylabel="Build Diameter (mm)",title="SBE5 Build Diameter")
+    plot!(ustrip.(rng[[1,end]]),ustrip.([coil.id,coil.id]))
+    plot!(ustrip.(rng[[1,end]]),ustrip.([coil.od,coil.od]))
+end
+
+plt=let
+    s=:SBE5
+    coil=CoilFunctions.coil[s]
+    p=CoilFunctions.power[s]
+    Ω=CoilFunctions.Ω(s,24u"V")
+    rng=15u"mm":0.01u"mm":30u"mm"
+    f = (x,gauge) -> begin
+        let coil=CoilGeometry(coil;len=x)
+            estimatetruefill(coil,gauge,Ω,0.9)
+        end
+    end
+    plt=plot(;legend=:topleft,xlabel="Length (mm)",ylabel="Build Diameter (mm)",title="SBE5 Build Diameter")
+    for (key,gauge) in filter(x-> 23 <= first(x) <= 26, AWG_Chart)
+        y=map(x->f(x,gauge).coil.od,rng)
+        plot!(ustrip.(rng),ustrip.(y),label="$(Int(key)) awg")
+    end
+    # y=map(x->f(x),rng)
+    # plot(ustrip.(rng),ustrip.(y);legend=:none,
+    #     xlabel="Length (mm)",ylabel="Build Diameter (mm)",title="SBE5 Build Diameter")
+    # plot!(ustrip.(rng[[1,end]]),ustrip.([coil.id,coil.id]))
+    # plot!(ustrip.(rng[[1,end]]),ustrip.([coil.od,coil.od]))
+    plt
+end

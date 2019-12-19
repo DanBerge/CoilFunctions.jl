@@ -1,4 +1,6 @@
-# module Drawing
+module Drawing
+
+using CoilFunctions, Unitful, Luxor
 
 function drawwire(p::Point, awg::AWG, fillfactor=1.0;u=u"mm")
     f = x->ustrip(u(x))
@@ -10,6 +12,7 @@ function drawwire(p::Point, awg::AWG, fillfactor=1.0;u=u"mm")
     # circle(p,f(awg.d_insul)/sqrt(fillfactor)/2, :stroke)
     # @info f(awg.d_insul)
 end
+
 
 function drawcoil(awg::AWG,winding::WindingLayers,maxturns::Integer,fillfactor::Real=1.0)
     turns = zero(maxturns)
@@ -34,21 +37,33 @@ function drawcoil(coil::CoilGeometry)
     grestore()
 end
 
-function foo()
-    let x=800,y=300,pad=20
-        # Drawing(x+2pad, y+2pad, "luxor-drawing-(timestamp).svg")
-        Drawing(x+2pad, y+2pad, :png)
-        origin(pad,y+pad)
-        s = ustrip(x/coil.len)
-        scale(s,-s)
-        background("white")
-        sethue("black")
-        drawcoil(coil)
-        drawcoil(a,a.fillfactor)
-        # drawcoil(merge(a,(turns=100,)),a.fillfactor)
-        finish()
-        preview()
-    end
+function illustratecoil(coil::CoilGeometry, Ω::Unitful.ElectricalResistance, fillfactor=1.0; filename=:png, pad=20,
+    resolution=(800,600), minturns=0, maxturns=typemax(Int64))
+
+    x,y = resolution
+    a=optimalcoil(coil,Ω,fillfactor)
+    Drawing(x+2pad, y+2pad, filename)
+    origin(pad,y+pad)
+    s = ustrip(x/coil.len)
+    scale(s,-s)
+    background("white")
+    sethue("black")
+    drawcoil(coil)
+    turns = clamp(a.turns,minturns, maxturns)
+    drawcoil(merge(a,(turns=turns,)),a.fillfactor)
+    finish()
+    @info a
+    preview()
 end
 
-# end
+function illustratecoil(coil::CoilGeometry, v::Unitful.Voltage, p::Unitful.Power, fillfactor=1.0; kwargs...)
+    illustratecoil(coil, v^2/p |> u"Ω", fillfactor;kwargs...)
+end
+
+function illustratecoil(s::Symbol, v::Unitful.Voltage, fillfactor=1.0; kwargs...)
+    coil=CoilFunctions.coil[s]
+    Ω=CoilFunctions.Ω(s,v)
+    illustratecoil(coil,Ω,fillfactor;kwargs...)
+end
+
+end
