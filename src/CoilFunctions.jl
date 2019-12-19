@@ -15,7 +15,7 @@ include("types.jl")
 include("defaults.jl")
 
 const AWG_Chart=let
-    src=readlines((@__DIR__) * "\\AWG Chart.csv")
+    src=readlines(joinpath((@__DIR__),"AWG Chart.csv"))
     data=map(src[2:end]) do x
         x=parse.(Float64,split(x,','))
         AWG(x[1],x[2]u"inch",x[5]u"inch",x[3]*u"Ω/1000ft",x[7]u"ft/lb")
