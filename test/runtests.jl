@@ -21,6 +21,53 @@ end
 
         b=CoilGeometry(10u"mm",10u"mm"+2.01awg.d_insul,10.01awg.d_insul)
         @test ideal_fill(b,awg) == WindingLayers(1, 10, 9, 10, 0, 10)
+    end
+end
 
+@testset "Winding Associativity" begin
+    let
+        g = (layers, odd, id, gauge) -> begin
+            f = (layers, odd, even, id, gauge) -> begin
+                coil = enclosewinding(layers, odd, even, id, gauge)
+                winding = ideal_fill(coil, gauge)
+                winding.layers == layers && winding.odd_layer == odd && winding.even_layer == even
+            end
+            all(f(layers,odd,odd,id,gauge) for layers in layers for odd in odd for id in id) &&
+            all(f(layers,odd,odd-1,id,gauge) for layers in layers for odd in odd for id in id)
+        end
+        @test all(x->g(1:100,1:200,range(10u"mm";stop=120u"mm",length=17),x),values(AWG_Chart))
+    end
+end
+
+@testset "Layer Associativity" begin
+    let
+        f = (n,gauge) -> begin
+            d=gauge.d_insul
+            w=CoilFunctions.oddwidth(n,d) |> u"mm"
+            _n =CoilFunctions.oddturns(w,d)
+            # @info (n,_n,d,w)
+            n == _n
+        end
+        @test all(f(n,gauge) for n in 1:1000 for (key,gauge) in CoilFunctions.AWG_Chart)
+    end
+    let
+        f = (n,gauge) -> begin
+            d=gauge.d_insul
+            w=CoilFunctions.evenwidth(n,d) |> u"mm"
+            _n =CoilFunctions.eventurns(w,d)
+            # @info (n,_n,d,w)
+            n == _n
+        end
+        @test all(f(n,gauge) for n in 1:1000 for (key,gauge) in CoilFunctions.AWG_Chart)
+    end
+    let
+        f = (n,gauge) -> begin
+            d=gauge.d_insul
+            h=CoilFunctions.layerheight(n,d) |> u"mm"
+            _n =CoilFunctions.ideal_layers(h,d)
+            # @info (n=n,n2=_n,d=d,h=h)
+            n == _n
+        end
+        @test all(f(n,gauge) for n in 1:100 for (key,gauge) in CoilFunctions.AWG_Chart)
     end
 end

@@ -7,7 +7,7 @@ using Transducers
 import Unitful: 𝐈,𝐋,𝐌,𝐓
 using Roots: find_zero
 
-export ideal_fill, AWG_Chart, optimalcoil, estimatetruefill
+export ideal_fill, AWG_Chart, optimalcoil, estimatetruefill, enclosewinding
 
 @derived_dimension ResistanceLength dimension(u"Ω/m") #𝐈^-2*𝐋*𝐌*𝐓^-3
 
@@ -18,7 +18,7 @@ include("coil.jl")
 include("optimization.jl")
 
 include("drawing.jl")
-using .Drawing
+# using .Drawing
 
 const AWG_Chart=let
     src=readlines(joinpath((@__DIR__),"AWG Chart.csv"))

@@ -1,4 +1,18 @@
 
+oddturns(w,d) = Int(floor(round(w/d;digits=6)))
+eventurns(w,d) = Int(floor(round((w-d/2)/d;digits=6)))
+
+oddwidth(n::Integer,d::Unitful.Length) = n*d
+evenwidth(n::Integer,d::Unitful.Length) = (n+0.5)*d
+function layerheight(n::Integer,d::Unitful.Length)
+    @assert n>0
+    y = d
+    if n>1
+        y += (n-1)*(d/2)*√3
+    end
+    y
+end
+
 """
 Calculate the orthocyclic coil winding for a give wire diameter, returning a `WindingLayers`.
 
@@ -24,8 +38,8 @@ function ideal_fill(w,h,d)
     # layers=length(d/2:d*sqrt(3)/2:h-d/2)
     #TODO Improve this to the rounding isn't necessary
     layers = ideal_layers(h,d)
-    odd_layer= Int(w ÷ d)
-    even_layer= Int((w-d/2) ÷ d)
+    odd_layer= oddturns(w,d)
+    even_layer= eventurns(w,d)
 
     odd_turns = length(1:2:layers)*odd_layer
     even_turns = length(2:2:layers)*even_layer
@@ -33,9 +47,19 @@ function ideal_fill(w,h,d)
     WindingLayers(layers, odd_layer, even_layer, odd_turns, even_turns, odd_turns+even_turns)
 end
 
-layers(h,d) = h>d ? Int(1+(h-d)÷(d*√3/2)) : 0
-eventurns(w,d) = Int(w÷d)
-oddturns(w,d) = Int((w-d/2)÷d)
+"""
+ideal_fill(coil::CoilGeometry, awg::AWG, fill::Real=1.0)
+
+    coil => CoilGeometry
+    awg => AWG of the wire
+    fillfactor => fillfactor of the wire
+"""
+function ideal_fill(coil::CoilGeometry, awg::AWG, fillfactor::T=1.0) where {T<:Real}
+    zero(T) < fillfactor <= one(T) || throw(DomainError(fillfactor))
+    w=coil.len
+    h=(coil.od-coil.id)/2
+    ideal_fill(w,h,awg.d_insul/sqrt(fillfactor))
+end
 
 """
 Calculate the number of layers of wire.  Given the `h` height of the layter, and the `d` diameter of the wire.
@@ -52,38 +76,30 @@ Calculate the number of layers of wire.  Given the `h` height of the layter, and
                 ↑
               (id)
 """
-function ideal_layers(h, d)
-    layers = h>d ? 1 + (h-d)/(d*√3/2) : 0
-    if round(layers) ≈ layers
-        return Int(round(layers))
-    else
-        Int(floor(layers))
-    end
-end
-
+ideal_layers(h,d) = h≳d ? 1+Int(round((h-d)/(d*√3/2))) : 0
+ideal_layers(coil::CoilGeometry,d::Unitful.Length) = ideal_layers((coil.od-coil.id)/2,d)
 
 """
-ideal_fill(coil::CoilGeometry, awg::AWG, fill::Real=1.0)
+Construct the minimum size coil to fit the specified winding
 
-    coil => CoilGeometry
-    awg => AWG of the wire
-    fillfactor => fillfactor of the wire
+    enclosewinding(layers, oddlayer, evenlayer, id::Unitful.Length, d::Unitful.Length)
+    enclosewinding(coil::CoilGeometry, winding::WindingLayers, d::Unitful.Length)
+    enclosewinding(coil::CoilGeometry, winding::WindingLayers, gauge::AWG)
+    enclosewinding(layers, oddlayer, evenlayer, id::Unitful.Length, gauge::AWG)
 """
-function ideal_fill(coil::CoilGeometry, awg::AWG, fillfactor::T=1.0) where {T<:Real}
-    zero(T) < fillfactor <= one(T) || throw(DomainError(fillfactor))
-    w=coil.len * sqrt(fillfactor)
-    h=(coil.od/2-coil.id/2)*sqrt(fillfactor)
-    ideal_fill(w,h,awg.d_insul)
-end
-
 function enclosewinding(layers, oddlayer, evenlayer, id::Unitful.Length, d::Unitful.Length)
-    od = id + 2d + (layers-1)*d*√3
-    len = oddlayers > evenlayer ? d*oddlayer : d/2 + d*evenlayer
+    @assert layers>0
+    # od = id + 2d + (layers-1)*d*√3
+    # len = oddlayer > evenlayer ? d*oddlayer : d/2 + d*evenlayer
+    w=oddlayer>evenlayer ? oddwidth(oddlayer,d) : evenwidth(evenlayer,d)
+    od=2layerheight(layers,d) + id
     f = unit(id)
-    CoilGeometry(id,f(od),f(len))
+    CoilGeometry(id,f(od),f(w))
 end
 
 function enclosewinding(coil::CoilGeometry, winding::WindingLayers, d::Unitful.Length)
     enclosewinding(winding.layers, winding.odd_layers, winding.even_layers, coil.od, d)
 end
 enclosewinding(coil::CoilGeometry, winding::WindingLayers, gauge::AWG) = enclosewinding(coil,winding,gauge.d_insul)
+enclosewinding(layers, oddlayer, evenlayer, id::Unitful.Length, gauge::AWG) =
+    enclosewinding(layers, oddlayer, evenlayer, id, gauge.d_insul)

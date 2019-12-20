@@ -1,5 +1,15 @@
 
 """
+Calculate the resistance of a full turn of wire, given the nominal diameter `d`.
+
+    resistance(d::Unitful.Length, awg::AWG)
+    resistance(d::Unitful.Length, Ω::Unitful.ElectricalResistance)
+
+"""
+resistance(d::Unitful.Length, awg::AWG) = resistance(d,awg.Ω)
+resistance(d::Unitful.Length, Ω::Unitful.ElectricalResistance) = d*pi*Ω |> u"Ω"
+
+"""
 isvalidcoil(a::CoilGeometry)
 
 Test whether the coil has valid geometry.
@@ -10,7 +20,7 @@ isvalidcoil(a::CoilGeometry) = a.od > a.id
 Calculate the maximum number of turns of wire for a given `CoilGeometry`, coil resistance `Ω`, and `fillfactor`.
 Optional keyword `AWG_Chart::AbstractDict{AWG}` to specify wire options.
 
-    optimalcoil(coil::CoilGeometry,Ω::Unitful.ElectricalResistance,fillfactor::Real=1.0; AWG_Chart=AWG_Chart
+    optimalcoil(coil::CoilGeometry,Ω::Unitful.ElectricalResistance,fillfactor::Real=1.0; AWG_Chart=AWG_Chart)
 
 """
 function optimalcoil(coil::CoilGeometry,Ω::Unitful.ElectricalResistance,fillfactor::Real=1.0; AWG_Chart=AWG_Chart)
@@ -46,7 +56,7 @@ function estimatetruefill(coil::CoilGeometry, awg::AWG; Ω::Unitful.ElectricalRe
         layerturns = isodd(layer) ? f.odd_layer : f.even_layer
         layerturns = Int(min(maxturns-state.turns,layerturns)) # turns due to turn limit)
 
-        turnΩ = awg.Ω*π*d |> unit(Ω)
+        turnΩ = resistance(d,awg)
         Ωturns = isinf(Ω) ? layerturns : (Ω-state.Ω)/turnΩ |> ceil |> Int # turns due to resistance limit
 
         layerturns = min(layerturns, Ωturns)
@@ -61,6 +71,7 @@ function estimatetruefill(coil::CoilGeometry, awg::AWG; Ω::Unitful.ElectricalRe
         end
     end
     dfinal = coil.id+begin
+    #TODO# Replace with enclosewinding function
         if state.layers <= 1
             2wire_diam
         else
