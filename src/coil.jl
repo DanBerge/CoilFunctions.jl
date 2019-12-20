@@ -7,7 +7,7 @@ Calculate the resistance of a full turn of wire, given the nominal diameter `d`.
 
 """
 resistance(d::Unitful.Length, awg::AWG) = resistance(d,awg.Ω)
-resistance(d::Unitful.Length, Ω::Unitful.ElectricalResistance) = d*pi*Ω |> u"Ω"
+resistance(d::Unitful.Length, Ω::ResistanceLength) = d*pi*Ω |> u"Ω"
 
 """
 isvalidcoil(a::CoilGeometry)
@@ -30,6 +30,16 @@ function optimalcoil(coil::CoilGeometry,Ω::Unitful.ElectricalResistance,fillfac
     ind=last(findmax(map(x->x.turns,y)))
     y[ind]
 end
+
+"""
+Calculate the maximum number of turns of wire for a given `CoilGeometry`, coil voltage `v`, power `p`, and `fillfactor`.
+Optional keyword `AWG_Chart::AbstractDict{AWG}` to specify wire options.
+
+    optimalcoil(coil::CoilGeometry,Ω::Unitful.ElectricalResistance,fillfactor::Real=1.0; AWG_Chart=AWG_Chart)
+
+"""
+optimalcoil(coil::CoilGeometry,v::Unitful.Voltage,p::Unitful.Power,fillfactor::Real=1.0; AWG_Chart=AWG_Chart) =
+    optimalcoil(coil,u"Ω"(v^2/p),fillfactor;AWG_Chart=AWG_Chart)
 
 estimatetruefill(coil::CoilGeometry, awg::AWG, Ω::Unitful.ElectricalResistance,fillfactor::Number=1.0;
     maxturns::Number=Inf) = estimatetruefill(coil,awg;Ω=Ω, fillfactor=fillfactor, maxturns=maxturns)
