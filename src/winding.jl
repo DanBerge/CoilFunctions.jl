@@ -48,7 +48,7 @@ function ideal_fill(w,h,d)
 end
 
 """
-ideal_fill(coil::CoilGeometry, awg::AWG, fill::Real=1.0)
+ideal_fill(coil::CoilGeometry, awg::AWG, [fill::Real=1.0])
 
     coil => CoilGeometry
     awg => AWG of the wire
@@ -83,12 +83,11 @@ ideal_layers(coil::CoilGeometry,d::Unitful.Length) = ideal_layers((coil.od-coil.
 Construct the minimum size coil to fit the specified winding
 
     enclosewinding(layers, oddlayer, evenlayer, id::Unitful.Length, d::Unitful.Length)
-    enclosewinding(coil::CoilGeometry, winding::WindingLayers, d::Unitful.Length)
-    enclosewinding(coil::CoilGeometry, winding::WindingLayers, gauge::AWG)
     enclosewinding(layers, oddlayer, evenlayer, id::Unitful.Length, gauge::AWG)
 """
 function enclosewinding(layers, oddlayer, evenlayer, id::Unitful.Length, d::Unitful.Length)
     @assert layers>0
+    @assert evenlayer == oddlayer || evenlayer == oddlayer-1
     # od = id + 2d + (layers-1)*d*√3
     # len = oddlayer > evenlayer ? d*oddlayer : d/2 + d*evenlayer
     w=oddlayer>evenlayer ? oddwidth(oddlayer,d) : evenwidth(evenlayer,d)
@@ -96,10 +95,20 @@ function enclosewinding(layers, oddlayer, evenlayer, id::Unitful.Length, d::Unit
     f = unit(id)
     CoilGeometry(id,f(od),f(w))
 end
-
-function enclosewinding(coil::CoilGeometry, winding::WindingLayers, d::Unitful.Length)
-    enclosewinding(winding.layers, winding.odd_layers, winding.even_layers, coil.od, d)
-end
-enclosewinding(coil::CoilGeometry, winding::WindingLayers, gauge::AWG) = enclosewinding(coil,winding,gauge.d_insul)
 enclosewinding(layers, oddlayer, evenlayer, id::Unitful.Length, gauge::AWG) =
     enclosewinding(layers, oddlayer, evenlayer, id, gauge.d_insul)
+
+"""
+Construct the minimum size `coil` to fit the `winding` within the limits of the existing coil.
+
+enclosewinding(coil::CoilGeometry, winding::WindingLayers, d::Unitful.Length)
+enclosewinding(coil::CoilGeometry, winding::WindingLayers, gauge::AWG)
+"""
+function enclosewinding(coil::CoilGeometry, winding::WindingLayers, d::Unitful.Length)
+#TODO Set check to make sure the calculated winding is within the limits of the existing coil
+    new_coil = enclosewinding(winding.layers, winding.odd_layers, winding.even_layers, coil.od, d)
+    @assert new_coil.id >= coil.id && new_coil.od <= coil.od && new_coil.len <= coil.len
+    @assert isvalidcoil(new_coil)
+    new_coil
+end
+enclosewinding(coil::CoilGeometry, winding::WindingLayers, gauge::AWG) = enclosewinding(coil,winding,gauge.d_insul)

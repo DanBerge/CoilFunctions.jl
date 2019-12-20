@@ -71,3 +71,12 @@ end
         @test all(f(n,gauge) for n in 1:100 for (key,gauge) in CoilFunctions.AWG_Chart)
     end
 end
+
+@testset "Basic Calculations" begin
+    @test CoilFunctions.resistance(1000u"ft"/π,CoilFunctions.AWG_Chart[30]) ≈ 102.7u"Ω"
+end
+
+@testset "Assertion Errors" begin
+    @test_throws AssertionError enclosewinding(10,10,8,10u"mm",0.2u"mm")
+    #TODO enclosedwinding from coil
+end

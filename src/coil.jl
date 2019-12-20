@@ -46,7 +46,7 @@ estimatetruefill(coil::CoilGeometry, awg::AWG, Ω::Unitful.ElectricalResistance,
 
 """
 Estimate the resulting winding given a `coil` and `gauge` of wire, and `fillfactor`.
-Optionally limit resistance `Ω`, `maxturns`
+Optionally limit resistance resistance `Ω` and turn count `maxturns`.
 
     estimatetruefill(coil::CoilGeometry, awg::AWG; Ω::Unitful.ElectricalResistance=Inf*u"Ω",fillfactor::Number=1.0, maxturns::Number=Inf)
 """
