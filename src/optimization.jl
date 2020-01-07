@@ -20,6 +20,7 @@ end
 Calculate the minimum length coil necessary to achieve the minimum turns of wire
 
     minimumcoillength(coil, Ω, minturns, fillfactor=1.0)
+    minimumcoillength(coil, v, p, minturns, fillfactor=1.0)
 
 """
 function minimumcoillength(coil::CoilGeometry, Ω::Unitful.ElectricalResistance,
@@ -38,6 +39,9 @@ function minimumcoillength(coil::CoilGeometry, Ω::Unitful.ElectricalResistance,
     i=searchsortedfirst(m,minturns)
     f(rng[i])
 end
+
+minimumcoillength(coil::CoilGeometry, v::Unitful.Voltage, p::Unitful.Power,
+    minturns::Integer, fillfactor::Real=1.0) = minimumcoillength(coil, u"Ω"(v^2/p), minturns, fillfactor)
 
 """
 
@@ -82,4 +86,18 @@ function minimumturns(coil::CoilGeometry, power::Unitful.Power, fillfactor::Real
     #     y.turns * vref/v |> floor |> Int
     # end
     # reduce(op, Map(g), rng)
+end
+
+"""
+
+Calculate the coil wire length and weight from an `optimalcoil` calculation.
+
+"""
+function weight(a)
+    coil=a.coil
+    turns=a.turns
+    Ω=a.Ω
+    gauge=AWG_Chart[a.gauge]
+    feet=Ω/gauge.Ω
+    return (length=feet,weight=feet/gauge.ft_lb)
 end

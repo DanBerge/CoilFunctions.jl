@@ -76,7 +76,7 @@ Calculate the number of layers of wire.  Given the `h` height of the layter, and
                 ↑
               (id)
 """
-ideal_layers(h,d) = h≳d ? 1+Int(round((h-d)/(d*√3/2))) : 0
+ideal_layers(h,d) = h≳d ? 1+floor(round( (h-d)/(d*√3/2) ;digits=6)) : 0
 ideal_layers(coil::CoilGeometry,d::Unitful.Length) = ideal_layers((coil.od-coil.id)/2,d)
 
 """
